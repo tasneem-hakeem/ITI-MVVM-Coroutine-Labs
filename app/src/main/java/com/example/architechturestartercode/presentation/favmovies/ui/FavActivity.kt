@@ -37,8 +37,8 @@ import com.example.architechturestartercode.data.movie.MoviesRepository
 import com.example.architechturestartercode.data.movie.model.Movie
 import com.example.architechturestartercode.presentation.allmovies.ui.MovieItem
 import com.example.architechturestartercode.presentation.allmovies.ui.ui.theme.ArchitechtureStarterCodeTheme
-import com.example.architechturestartercode.presentation.favmovies.presenter.FavMoviesViewModel
-import com.example.architechturestartercode.presentation.favmovies.presenter.FavMoviesViewModelFactory
+import com.example.architechturestartercode.presentation.favmovies.viewmodel.FavMoviesViewModel
+import com.example.architechturestartercode.presentation.favmovies.viewmodel.FavMoviesViewModelFactory
 
 class FavActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)

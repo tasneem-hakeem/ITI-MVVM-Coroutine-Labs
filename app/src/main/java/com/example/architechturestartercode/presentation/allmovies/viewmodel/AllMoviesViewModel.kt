@@ -1,4 +1,4 @@
-package com.example.architechturestartercode.presentation.allmovies.presenter
+package com.example.architechturestartercode.presentation.allmovies.viewmodel
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
