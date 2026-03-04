@@ -55,8 +55,8 @@ import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.example.architechturestartercode.data.movie.MoviesRepository
 import com.example.architechturestartercode.data.movie.model.Movie
-import com.example.architechturestartercode.presentation.allmovies.viewmodel.AllMoviesViewModel
-import com.example.architechturestartercode.presentation.allmovies.viewmodel.AllMoviesViewModelFactory
+import com.example.architechturestartercode.presentation.allmovies.presenter.AllMoviesViewModel
+import com.example.architechturestartercode.presentation.allmovies.presenter.AllMoviesViewModelFactory
 import com.example.architechturestartercode.presentation.allmovies.ui.ui.theme.ArchitechtureStarterCodeTheme
 
 class AllMoviesActivity : ComponentActivity() {
