@@ -5,6 +5,8 @@ import android.os.Bundle
 import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
 import com.example.architechturestartercode.presentation.allmovies.ui.AllMoviesActivity
+import kotlin.jvm.java
+
 import com.example.architechturestartercode.presentation.favmovies.ui.FavActivity
 
 class MainActivity : AppCompatActivity() {

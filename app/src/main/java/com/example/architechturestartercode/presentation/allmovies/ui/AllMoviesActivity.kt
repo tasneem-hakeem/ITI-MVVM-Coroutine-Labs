@@ -39,7 +39,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,14 +51,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.example.architechturestartercode.data.movie.MoviesRepository
 import com.example.architechturestartercode.data.movie.model.Movie
+import com.example.architechturestartercode.presentation.allmovies.state.MovieEvent
+import com.example.architechturestartercode.presentation.allmovies.state.MovieUiState
+import com.example.architechturestartercode.presentation.allmovies.ui.ui.theme.ArchitechtureStarterCodeTheme
 import com.example.architechturestartercode.presentation.allmovies.viewmodel.AllMoviesViewModel
 import com.example.architechturestartercode.presentation.allmovies.viewmodel.AllMoviesViewModelFactory
-import com.example.architechturestartercode.presentation.allmovies.ui.ui.theme.ArchitechtureStarterCodeTheme
+import kotlinx.coroutines.flow.collectLatest
 
 class AllMoviesActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
@@ -88,10 +93,8 @@ class AllMoviesActivity : ComponentActivity() {
                     val factory = AllMoviesViewModelFactory(MoviesRepository(application))
                     val viewModel = viewModel<AllMoviesViewModel>(factory = factory)
                     AllMoviesScreen(
+                        viewModel = viewModel,
                         modifier = Modifier.padding(innerPadding),
-                        movies = viewModel.allMovies.observeAsState().value ?: emptyList(),
-                        isLoading = viewModel.isLoading.observeAsState().value ?: false,
-                        error = viewModel.errorMessage.observeAsState().value ?: "",
                         addToFav = viewModel::addToFav
                     )
                 }
@@ -102,17 +105,31 @@ class AllMoviesActivity : ComponentActivity() {
 
 @Composable
 fun AllMoviesScreen(
+    viewModel: AllMoviesViewModel,
     modifier: Modifier = Modifier,
-    movies: List<Movie>,
-    isLoading: Boolean,
-    error: String?,
     addToFav: (Movie) -> Unit,
 ) {
+    val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        viewModel.events.collectLatest { event ->
+            when (event) {
+                is MovieEvent.ShowMessage -> {
+                    Toast.makeText(
+                        context,
+                        event.message,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+    }
     Box(
         modifier = modifier.fillMaxSize()
     ) {
-        when {
-            isLoading -> {
+        when (val state = uiState) {
+            is MovieUiState.Loading -> {
                 Column(
                     modifier = Modifier.fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -132,7 +149,7 @@ fun AllMoviesScreen(
                 }
             }
 
-            !error.isNullOrEmpty() -> {
+            is MovieUiState.Error -> {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -147,7 +164,7 @@ fun AllMoviesScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = error,
+                        text = state.message,
                         color = MaterialTheme.colorScheme.error,
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.bodyLarge,
@@ -156,40 +173,40 @@ fun AllMoviesScreen(
                 }
             }
 
-            movies.isEmpty() -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .wrapContentSize(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = null,
-                        modifier = Modifier.size(72.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "No movies found",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            else -> {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    contentPadding = PaddingValues(
-                        horizontal = 12.dp,
-                        vertical = 8.dp
-                    )
-                ) {
-                    items(movies) { movie ->
-                        MovieItem(movie = movie, buttonLabel = "Add to Favorites") {
-                            addToFav(movie)
+            is MovieUiState.Success -> {
+                if (state.movies.isEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .wrapContentSize(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            modifier = Modifier.size(72.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "No movies found",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        contentPadding = PaddingValues(
+                            horizontal = 12.dp,
+                            vertical = 8.dp
+                        )
+                    ) {
+                        items(state.movies) { movie ->
+                            MovieItem(movie = movie, buttonLabel = "Add to Favorites") {
+                                addToFav(movie)
+                            }
                         }
                     }
                 }
