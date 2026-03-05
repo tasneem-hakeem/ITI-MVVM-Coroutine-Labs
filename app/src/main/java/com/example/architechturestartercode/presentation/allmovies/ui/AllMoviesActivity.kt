@@ -7,7 +7,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -33,6 +32,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -95,7 +95,8 @@ class AllMoviesActivity : ComponentActivity() {
                     AllMoviesScreen(
                         viewModel = viewModel,
                         modifier = Modifier.padding(innerPadding),
-                        addToFav = viewModel::addToFav
+                        addToFav = viewModel::addToFav,
+                        onSearchQueryChanged = viewModel::onSearchQueryChanged
                     )
                 }
             }
@@ -108,9 +109,11 @@ fun AllMoviesScreen(
     viewModel: AllMoviesViewModel,
     modifier: Modifier = Modifier,
     addToFav: (Movie) -> Unit,
+    onSearchQueryChanged: (String) -> Unit
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val query by viewModel.searchQuery.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         viewModel.events.collectLatest { event ->
@@ -125,13 +128,27 @@ fun AllMoviesScreen(
             }
         }
     }
-    Box(
+    Column(
         modifier = modifier.fillMaxSize()
     ) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = {
+                onSearchQueryChanged(it)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            placeholder = { Text("Search movies") },
+            singleLine = true
+        )
+
         when (val state = uiState) {
             is MovieUiState.Loading -> {
                 Column(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
@@ -152,7 +169,8 @@ fun AllMoviesScreen(
             is MovieUiState.Error -> {
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .fillMaxWidth()
+                        .weight(1f)
                         .wrapContentSize(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -177,7 +195,8 @@ fun AllMoviesScreen(
                 if (state.movies.isEmpty()) {
                     Column(
                         modifier = Modifier
-                            .fillMaxSize()
+                            .fillMaxWidth()
+                            .weight(1f)
                             .wrapContentSize(Alignment.Center),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -196,7 +215,9 @@ fun AllMoviesScreen(
                     }
                 } else {
                     LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                         contentPadding = PaddingValues(
                             horizontal = 12.dp,

@@ -7,11 +7,13 @@ import com.example.architechturestartercode.data.movie.MoviesRepository
 import com.example.architechturestartercode.data.movie.model.Movie
 import com.example.architechturestartercode.presentation.allmovies.state.MovieEvent
 import com.example.architechturestartercode.presentation.allmovies.state.MovieUiState
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 
@@ -25,29 +27,52 @@ class AllMoviesViewModel(
     private val _events = MutableSharedFlow<MovieEvent>()
     val events = _events.asSharedFlow()
 
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery = _searchQuery.asStateFlow()
+
+    private val _allMovies = MutableStateFlow<List<Movie>>(emptyList())
+
     init {
+        observeMovies()
         getAllMovies()
     }
 
     fun getAllMovies() {
         viewModelScope.launch {
             repository.getAllMovies()
-                .onStart {
-                    _uiState.value = MovieUiState.Loading
-                }
-                .map { result ->
+                .onStart { _uiState.value = MovieUiState.Loading }
+                .collect { result ->
                     result.fold(
-                        onSuccess = { MovieUiState.Success(it) },
+                        onSuccess = { movies ->
+                            _allMovies.value = movies
+                        },
                         onFailure = {
-                            MovieUiState.Error(
+                            _uiState.value = MovieUiState.Error(
                                 it.message ?: "Error"
                             )
                         }
                     )
                 }
-                .collect { state ->
-                    _uiState.value = state
+        }
+    }
+
+    @OptIn(FlowPreview::class)
+    private fun observeMovies() {
+        viewModelScope.launch {
+            combine(
+                _allMovies,
+                _searchQuery.debounce(300)
+            ) { movies, query ->
+                if (query.isBlank()) {
+                    movies
+                } else {
+                    movies.filter {
+                        it.title.contains(query, ignoreCase = true)
+                    }
                 }
+            }.collect { filteredMovies ->
+                _uiState.value = MovieUiState.Success(filteredMovies)
+            }
         }
     }
 
@@ -60,6 +85,10 @@ class AllMoviesViewModel(
                 _events.emit(MovieEvent.ShowMessage("Error adding to favorites ${e.message}"))
             }
         }
+    }
+
+    fun onSearchQueryChanged(query: String) {
+        _searchQuery.value = query
     }
 }
 
